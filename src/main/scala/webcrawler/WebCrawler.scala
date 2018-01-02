@@ -1,6 +1,6 @@
 package webcrawler
 
-import java.io.{BufferedWriter, File, FileWriter}
+import java.io._
 import java.net.URL
 
 import org.htmlcleaner.HtmlCleaner
@@ -20,41 +20,44 @@ object WebCrawler extends App {
   readLine()
 
   def crawlSingleSite(site: String, depth: Int): Future[Iterable[String]] = Future {
-
-    // creating directory
-    val sb = new StringBuilder
-    sb.append(".")
-    for (i <- 0 to depth) {
-      sb.append("/" + i)
-    }
-    val path = sb.toString()
-    val directory = new File(path)
-    if (!directory.exists) {
-      directory.mkdir
-    }
-
     val url = new URL(site)
+
     val rootNode = cleaner.clean(url)
-
-    // creating site file
-    println(path)
-    val file = new File(path + "/" + url.getHost)
-    val bw = new BufferedWriter(new FileWriter(file))
-    bw.write(rootNode.getText.toString)
-    bw.close()
-
     val elements = rootNode.getElementsByName("a", true)
+
     val urls = elements.map(e => e.getAttributeByName("href"))
     urls
   }
 
-  def crawlUntilDepth(maxDepth: Int, root: String, depth: Int = 0): Unit = {
+  def crawlUntilDepth(maxDepth: Int, root: String, depth: Int = 0): Unit = Future {
 
+//    // creating directory
+//    val sb = new StringBuilder
+//    sb.append(".")
+//    for (i <- 0 to depth) {
+//      sb.append("/" + i)
+//    }
+//    val path = sb.toString()
+//    val directory = new File(path)
+//    if (!directory.exists) {
+//      directory.mkdir
+//    }
+//
+//    // creating site file
+//    println(path)
+//    val host = root.split(".")
+//    val file = new File(path + "/" + host + ".txt")
+//    val bw = new BufferedWriter(new FileWriter(file))
+//    bw.write(root)
+//    bw.close()
+
+    println(root + " on depth: " + depth)
     if (depth >= maxDepth) {}
     else crawlSingleSite(root, depth) onComplete {
-      case Success(urls) => urls.foreach(u => crawlUntilDepth(depth + 1, u))
-      case Failure(e) => e.printStackTrace()
+
+      case Success(urls) => urls.foreach(href => crawlUntilDepth(maxDepth, href, depth + 1))
+
+      case Failure(_) =>
     }
   }
-
 }
